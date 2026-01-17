@@ -48,7 +48,7 @@ function! lsp#internal#document_hover#under_cursor#do(options) abort
         return
     endif
 
-    redraw | echo 'Retrieving hover ...' . string(l:servers)
+    redraw | echom 'Retrieving hover ...' . string(l:servers)
 
     call lsp#_new_command()
 
