@@ -48,11 +48,10 @@ function! lsp#internal#document_hover#under_cursor#do(options) abort
         return
     endif
 
-    redraw | echo 'Retrieving hover ...'
+    redraw | echo 'Retrieving hover ...' . string(l:servers)
 
     call lsp#_new_command()
 
-    " TODO: ask user to select server for formatting if there are multiple servers
     let l:request = {
         \ 'method': 'textDocument/hover',
         \ 'params': {
@@ -60,18 +59,26 @@ function! lsp#internal#document_hover#under_cursor#do(options) abort
         \   'position': lsp#get_position(),
         \ },
         \ }
-    call lsp#callbag#pipe(
-        \ lsp#callbag#fromList(l:servers),
-        \ lsp#callbag#flatMap({server->
-        \   lsp#request(server, l:request)
-        \ }),
-        \ lsp#callbag#tap({x->s:show_hover(l:ui, x['server_name'], x['request'], x['response'])}),
-        \ lsp#callbag#takeUntil(lsp#callbag#pipe(
-        \   lsp#stream(),
-        \   lsp#callbag#filter({x->has_key(x, 'command')}),
-        \ )),
-        \ lsp#callbag#subscribe(),
-        \ )
+
+    " This is an easy counter-measure for #1600, https://github.com/prabirshrestha/vim-lsp/issues/1600
+    " The below is more preferrable? 
+    " TODO: ask user to select server for formatting if there are multiple servers
+    for l:server in l:servers
+        let l:single_server_list = [l:server]
+
+        call lsp#callbag#pipe(
+            \ lsp#callbag#fromList(l:single_server_list),
+            \ lsp#callbag#flatMap({server->
+            \   lsp#request(server, l:request)
+            \ }),
+            \ lsp#callbag#tap({x->s:show_hover(l:ui, x['server_name'], x['request'], x['response'])}),
+            \ lsp#callbag#takeUntil(lsp#callbag#pipe(
+            \   lsp#stream(),
+            \   lsp#callbag#filter({x->has_key(x, 'command')}),
+            \ )),
+            \ lsp#callbag#subscribe(),
+            \ )
+    endfor
 endfunction
 
 function! lsp#internal#document_hover#under_cursor#getpreviewwinid() abort
@@ -84,7 +91,9 @@ endfunction
 function! s:show_hover(ui, server_name, request, response) abort
     if !has_key(a:response, 'result') || empty(a:response['result']) || 
         \ empty(a:response['result']['contents'])
-        call lsp#utils#error('No hover information found in server - ' . a:server_name)
+        "Error message is commented out since it is no problems
+        "that a few servers do not return the hover.
+        "call lsp#utils#error('No hover information found in server - ' . a:server_name)
         return
     endif
 
