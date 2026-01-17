@@ -6,6 +6,9 @@ let s:FloatingWindow = vital#lsp#import('VS.Vim.Window.FloatingWindow')
 let s:Window = vital#lsp#import('VS.Vim.Window')
 let s:Buffer = vital#lsp#import('VS.Vim.Buffer')
 
+" Whether the first hover call.
+let s:is_first_hover = 1
+
 " options - {
 "   server - 'server_name'		" optional
 "   ui - 'float' | 'preview'
@@ -48,7 +51,12 @@ function! lsp#internal#document_hover#under_cursor#do(options) abort
         return
     endif
 
-    redraw | echom 'Retrieving hover ...' . string(l:servers)
+    if s:is_first_hover == 1
+        let l:server_names = join(l:servers, ', ')
+        let l:msg = '[lsp] Retrieving hover from: ' . l:server_names
+        redraw | echom l:msg
+        let s:is_first_hover = 0
+    endif
 
     call lsp#_new_command()
 
